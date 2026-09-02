@@ -1,0 +1,6 @@
+- [x] Create and verify `tests/auth.spec.js` (Login checks for Buyer, Seller, Admin, and failure cases)
+- [x] Create and verify `tests/products.spec.js` (Seller product creation, Buyer browsing)
+- [x] Create and verify `tests/checkout.spec.js` (Add to cart and checkout)
+- [x] Delete legacy `heckout.spec.js` to keep codebase clean
+- [x] Create and verify `tests/orders.spec.js` (Accepting orders, wallet balance transfers, buyer profile purchase history, and stock updates)
+- [x] Create and verify `tests/complaints.spec.js` (Filing complaints, Admin blocking/unblocking shop, storefront visibility)

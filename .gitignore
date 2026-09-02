@@ -1,0 +1,49 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+
+# PHP
+vendor/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Logs
+*.log
+logs/
+
+# Uploads / generated files
+public/uploads/
+server/public/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Build / cache
+.cache/
+dist/
+build/
+
+# Microservice uploads
+serverphp/*/public/uploads/
+
+# Composer executable
+**/composer.phar

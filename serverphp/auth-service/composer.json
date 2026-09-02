@@ -1,0 +1,20 @@
+{
+    "name": "marketplace/auth-service",
+    "description": "Authentication Microservice for Marketplace",
+    "require": {
+        "firebase/php-jwt": "^6.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "AuthService\\": "src/",
+            "AuthService\\Config\\": "config/"
+        }
+    },
+    "config": {
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}

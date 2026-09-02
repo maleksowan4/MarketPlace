@@ -1,0 +1,20 @@
+{
+    "name": "marketplace/complaint-service",
+    "description": "Customer Disputes Microservice",
+    "require": {
+        "firebase/php-jwt": "^6.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "ComplaintService\\": "src/",
+            "ComplaintService\\Config\\": "config/"
+        }
+    },
+    "config": {
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}

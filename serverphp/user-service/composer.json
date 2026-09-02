@@ -1,0 +1,20 @@
+{
+    "name": "marketplace/user-service",
+    "description": "User and Shop Profile Microservice",
+    "require": {
+        "firebase/php-jwt": "^6.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "UserService\\": "src/",
+            "UserService\\Config\\": "config/"
+        }
+    },
+    "config": {
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}

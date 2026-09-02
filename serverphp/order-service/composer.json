@@ -1,0 +1,21 @@
+{
+    "name": "marketplace/order-service",
+    "description": "Order Saga Orchestration Microservice",
+    "require": {
+        "firebase/php-jwt": "^6.10",
+        "php-amqplib/php-amqplib": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "OrderService\\": "src/",
+            "OrderService\\Config\\": "config/"
+        }
+    },
+    "config": {
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}

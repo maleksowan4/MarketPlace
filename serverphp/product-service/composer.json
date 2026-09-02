@@ -1,0 +1,20 @@
+{
+    "name": "marketplace/product-service",
+    "description": "Product Inventory Microservice",
+    "require": {
+        "firebase/php-jwt": "^6.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "ProductService\\": "src/",
+            "ProductService\\Config\\": "config/"
+        }
+    },
+    "config": {
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "name": "marketplace/wallet-service",
+    "description": "User Wallet Microservice",
+    "require": {
+        "firebase/php-jwt": "^6.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "WalletService\\": "src/",
+            "WalletService\\Config\\": "config/"
+        }
+    },
+    "config": {
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}
