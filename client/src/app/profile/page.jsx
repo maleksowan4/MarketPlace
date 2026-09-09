@@ -1,5 +1,6 @@
 'use client'
 import { useAuth } from '@/context/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -18,7 +19,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/orders/buyer', {
+        const res = await fetch(`${API_BASE_URL}/orders/buyer`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -57,7 +58,7 @@ export default function ProfilePage() {
     }
 
       try {
-    const res = await fetch('http://localhost:5000/api/wallet/deposit', {
+    const res = await fetch(`${API_BASE_URL}/wallet/deposit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

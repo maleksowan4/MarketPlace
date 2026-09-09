@@ -36,8 +36,14 @@ const server = http.createServer((req, res) => {
 
   let targetServiceUrl = SERVICES.auth; // Default to Auth Service
 
+  // 0. Static Uploads Routing for User/Shop logos & Product images
+  if (path.startsWith('/api/uploads/user') || path.startsWith('/uploads/user')) {
+    targetServiceUrl = SERVICES.user;
+  } else if (path.startsWith('/api/uploads/product') || path.startsWith('/uploads/product')) {
+    targetServiceUrl = SERVICES.product;
+  }
   // 1. User / Shop Service
-  if (
+  else if (
     path.startsWith('/api/users/profile') ||
     (path === '/api/users' && method === 'GET') ||
     path.startsWith('/api/admin/sellers') ||
@@ -73,6 +79,13 @@ const server = http.createServer((req, res) => {
 
   // --- ENDPOINT REWRITING RULES ---
   let rewrittenUrl = path;
+
+  // Uploads path rewriting to microservices public/uploads/ directory
+  if (path.startsWith('/api/uploads/user') || path.startsWith('/uploads/user')) {
+    rewrittenUrl = path.replace(/^\/(api\/)?uploads\/user(\/uploads)?/, '/uploads');
+  } else if (path.startsWith('/api/uploads/product') || path.startsWith('/uploads/product')) {
+    rewrittenUrl = path.replace(/^\/(api\/)?uploads\/product(\/uploads)?/, '/uploads');
+  }
 
   // GET /api/shops/:shopId/products -> GET /api/products/shop/:shopId
   const shopProductsMatch = path.match(/^\/api\/shops\/([0-9]+)\/products$/);

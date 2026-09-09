@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL, USER_SERVICE_BASE_URL, getShopLogoUrl } from "@/config/api";
 import Link from "next/link";
 
 export default function SellerShopSettingsPage() {
@@ -49,7 +50,7 @@ export default function SellerShopSettingsPage() {
         return;
       }
       try {
-        const res = await fetch("http://localhost:5000/api/shops/my-shop-details", {
+        const res = await fetch(`${API_BASE_URL}/shops/my-shop-details`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -58,7 +59,7 @@ export default function SellerShopSettingsPage() {
           setShopName(data.ShopName || "");
           setDescription(data.Description || "");
           if (data.LogoUrl) {
-            setLogoPreview(`http://localhost:5002${data.LogoUrl}`);
+            setLogoPreview(getShopLogoUrl(data.LogoUrl));
           }
         } else {
           showMessage("error", "Failed to fetch shop details.");
@@ -106,7 +107,7 @@ export default function SellerShopSettingsPage() {
         formData.append("logo", logoFile);
       }
 
-      const res = await fetch("http://localhost:5000/api/shops/my-shop", {
+      const res = await fetch(`${API_BASE_URL}/shops/my-shop`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`
@@ -118,7 +119,7 @@ export default function SellerShopSettingsPage() {
         showMessage("success", "Shop profile updated successfully!");
         setLogoFile(null);
         // Refresh details
-        const refreshed = await fetch("http://localhost:5000/api/shops/my-shop-details", {
+        const refreshed = await fetch(`${API_BASE_URL}/shops/my-shop-details`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (refreshed.ok) {

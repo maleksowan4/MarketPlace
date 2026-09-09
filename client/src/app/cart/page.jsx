@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 
 
 export default function CartPage() {
@@ -76,7 +77,9 @@ export default function CartPage() {
     // Places the order to the backend API
    // Places the order to the backend API
   const handleCheckout = async () => {
-    if (!token) {
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+
+    if (!activeToken) {
       alert("Please login to place an order!");
       return;
     }
@@ -89,7 +92,7 @@ export default function CartPage() {
     // If SellerID is not in the cart item, fetch it from the shop details
     if (!sellerId) {
       try {
-        const shopRes = await fetch(`http://localhost:5000/api/shops/${cartItems[0].ShopID}`);
+        const shopRes = await fetch(`${API_BASE_URL}/shops/${cartItems[0].ShopID}`);
         if (shopRes.ok) {
           const shopData = await shopRes.json();
           sellerId = shopData.SellerID;
@@ -111,11 +114,11 @@ export default function CartPage() {
     }));
 
     try {
-      const res = await fetch("http://localhost:5000/api/orders", {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${activeToken}`
         },
         body: JSON.stringify({ sellerId, items })
       });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/config/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -32,7 +33,7 @@ export default function AdminBuyersPage() {
   const fetchBuyers = async () => {
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:5000/api/admin/buyers", {
+      const res = await fetch(`${API_BASE_URL}/admin/buyers`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -59,7 +60,7 @@ export default function AdminBuyersPage() {
   const handleToggleBlock = async (userId, currentBlocked) => {
     setMessage(null);
     try {
-      const res = await fetch("http://localhost:5000/api/admin/users/block", {
+      const res = await fetch(`${API_BASE_URL}/admin/users/block`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

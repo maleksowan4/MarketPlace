@@ -6,35 +6,43 @@ use OrderService\DTOs\CreateOrderDTO;
 use OrderService\Models\Order;
 use Exception;
 
-class OrderService {
+class OrderService
+{
     private OrderRepository $orderRepository;
     private string $productServiceUrl;
     private string $walletServiceUrl;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->orderRepository = new OrderRepository();
         $this->productServiceUrl = rtrim(getenv('PRODUCT_SERVICE_URL') ?: 'http://localhost:5003', '/');
-        $this->walletServiceUrl  = rtrim(getenv('WALLET_SERVICE_URL')  ?: 'http://localhost:5005', '/');
+        $this->walletServiceUrl = rtrim(getenv('WALLET_SERVICE_URL') ?: 'http://localhost:5005', '/');
     }
 
     // 1. Coordinates the checkout Saga transaction
-    public function placeOrder(int $buyerId, CreateOrderDTO $dto): int {
+    public function placeOrder(int $buyerId, CreateOrderDTO $dto): int
+    {
         // Resolve prices from Product Service and verify stock availability
         $totalPrice = 0.0;
         $resolvedItems = [];
+
         foreach ($dto->items as $item) {
             $productId = $item['productId'];
             $quantity = $item['quantity'];
 
             // Query Product Service
-            $productRes = $this->sendCurlRequest($this->productServiceUrl . "/api/products/" . $productId, "GET");
+            $productRes = $this->sendCurlRequest(
+                $this->productServiceUrl . "/api/products/" . $productId,
+                "GET"
+            );
+
             if ($productRes['status'] !== 200) {
                 throw new Exception("Product ID $productId not found or service unavailable.");
             }
 
             $productData = $productRes['body'];
-            
-            // Handle potentially capitalized or lowercase database keys returned by the Product Service
+
+            // Handle potentially capitalized or lowercase database keys
             $dbPrice = $productData['Price'] ?? $productData['price'] ?? null;
             $dbQuantity = $productData['Quantity'] ?? $productData['quantity'] ?? null;
 
@@ -43,10 +51,12 @@ class OrderService {
             }
 
             if ($dbQuantity < $quantity) {
-                throw new Exception("Insufficient stock for product ID $productId. Available: $dbQuantity, Requested: $quantity.");
+                throw new Exception(
+                    "Insufficient stock for product ID $productId. Available: $dbQuantity, Requested: $quantity."
+                );
             }
 
-            $itemPrice = (float)$dbPrice;
+            $itemPrice = (float) $dbPrice;
             $totalPrice += $itemPrice * $quantity;
 
             $resolvedItems[] = [
@@ -66,40 +76,62 @@ class OrderService {
         // Step 2: Trigger Product Service to reserve inventory
         $productServiceUrl = $this->productServiceUrl . "/api/products/reserve";
         $reservePayload = ["items" => $dto->items];
-        
-        $reserveResult = $this->sendCurlRequest($productServiceUrl, "POST", $reservePayload);
-        
+
+        $reserveResult = $this->sendCurlRequest(
+            $productServiceUrl,
+            "POST",
+            $reservePayload
+        );
+
         if ($reserveResult['status'] !== 200) {
             // Failed to reserve stock: cancel order
             $this->orderRepository->updateOrderStatus($orderId, "Failed");
-            throw new Exception("Stock reservation failed: " . ($reserveResult['body']['message'] ?? 'Unknown error'));
+
+            throw new Exception(
+                "Stock reservation failed: " .
+                ($reserveResult['body']['message'] ?? 'Unknown error')
+            );
         }
 
-        // Step 3: Keep order as Pending for seller acceptance (buyer will be charged when accepted).
+        // Step 3: Keep order as Pending for seller acceptance
         $this->orderRepository->updateOrderStatus($orderId, "Pending");
 
-         // Step 5: Publish asynchronous OrderCreated event for email notifications
+        // Step 5: Publish asynchronous OrderCreated event for email notifications
         try {
             $buyerEmail = $this->orderRepository->getBuyerEmail($buyerId);
+
             if ($buyerEmail) {
-                \OrderService\Services\EventPublisher::publishOrderCreated($orderId, $buyerEmail, $totalPrice);
+                \OrderService\Services\EventPublisher::publishOrderCreated(
+                    $orderId,
+                    $buyerEmail,
+                    $totalPrice
+                );
             }
         } catch (Exception $e) {
-            // We log the error but don't crash checkout! The customer still gets their order.
-            error_log("Failed to publish email notification event: " . $e->getMessage());
+            // Log the error but don't crash checkout
+            error_log(
+                "Failed to publish email notification event: " .
+                $e->getMessage()
+            );
         }
+
         return $orderId;
     }
 
     // 2. Retrieve single order details
-    public function getOrderDetails(int $orderId, array $currentUser): Order {
+    public function getOrderDetails(int $orderId, array $currentUser): Order
+    {
         $order = $this->orderRepository->getOrderDetails($orderId);
+
         if (!$order) {
             throw new Exception("Order not found.");
         }
 
         // Authorization check: only the buyer or an admin can view order details
-        if ($order->buyerId !== $currentUser['userId'] && ($currentUser['roleId'] ?? 0) !== 1) {
+        if (
+            $order->buyerId !== $currentUser['userId'] &&
+            ($currentUser['roleId'] ?? 0) !== 1
+        ) {
             throw new Exception("Access denied. You do not own this order.");
         }
 
@@ -107,27 +139,37 @@ class OrderService {
     }
 
     // 3. Retrieve order history of a buyer
-    public function getBuyerOrders(int $buyerId): array {
+    public function getBuyerOrders(int $buyerId): array
+    {
         return $this->orderRepository->getBuyerOrders($buyerId);
     }
 
-    // Helper: Executes HTTP calls to other microservices
-    // Helper: Sends cURL HTTP request
-    private function sendCurlRequest(string $url, string $method, array $data = []): array {
+    // Helper: Sends HTTP requests to other microservices
+    private function sendCurlRequest(
+        string $url,
+        string $method,
+        array $data = []
+    ): array {
         $ch = curl_init($url);
-        
-        $jsonData = json_encode($data);
-        
+
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($jsonData)
-        ]);
+
+        // GET requests should not send a request body
+        if ($method !== "GET") {
+            $jsonData = json_encode($data);
+
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($jsonData)
+            ]);
+        }
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
         curl_close($ch);
 
         $decodedResponse = json_decode($response, true) ?? [];
@@ -138,69 +180,74 @@ class OrderService {
         ];
     }
 
-    // 2. Fetch all orders (raw items list) for a seller (used in dashboard charts)
-    public function getSellerOrders(int $sellerId): array {
+    // 2. Fetch all orders (raw items list) for a seller
+    public function getSellerOrders(int $sellerId): array
+    {
         $rows = $this->orderRepository->getSellerOrders($sellerId);
-        return array_map(function($row) {
+
+        return array_map(function ($row) {
             return [
-                'OrderID' => (int)$row['OrderID'],
-                'orderId' => (int)$row['OrderID'],
+                'OrderID' => (int) $row['OrderID'],
+                'orderId' => (int) $row['OrderID'],
                 'OrderDate' => $row['OrderDate'],
                 'orderDate' => $row['OrderDate'],
                 'Status' => $row['Status'],
                 'status' => $row['Status'],
-                'Quantity' => (int)$row['Quantity'],
-                'quantity' => (int)$row['Quantity'],
-                'UnitPrice' => (float)$row['UnitPrice'],
-                'unitPrice' => (float)$row['UnitPrice'],
+                'Quantity' => (int) $row['Quantity'],
+                'quantity' => (int) $row['Quantity'],
+                'UnitPrice' => (float) $row['UnitPrice'],
+                'unitPrice' => (float) $row['UnitPrice'],
                 'ProductName' => $row['ProductName'],
                 'productName' => $row['ProductName'],
-                'ProductID' => (int)$row['ProductID'],
-                'productId' => (int)$row['ProductID'],
+                'ProductID' => (int) $row['ProductID'],
+                'productId' => (int) $row['ProductID'],
                 'BuyerName' => $row['BuyerName'],
                 'buyerName' => $row['BuyerName']
             ];
         }, $rows);
     }
 
-    // 3. Fetch grouped incoming orders list for a seller (used in incoming orders table)
-    public function getSellerIncomingOrders(int $sellerId): array {
+    // 3. Fetch grouped incoming orders list for a seller
+    public function getSellerIncomingOrders(int $sellerId): array
+    {
         $rawOrders = $this->orderRepository->getSellerOrders($sellerId);
         $grouped = [];
 
         foreach ($rawOrders as $order) {
-            $orderId = (int)$order['OrderID'];
+            $orderId = (int) $order['OrderID'];
+
             if (!isset($grouped[$orderId])) {
                 $grouped[$orderId] = [
                     'orderId' => $orderId,
-                    'OrderID' => $orderId, // Fallback
+                    'OrderID' => $orderId,
                     'orderDate' => $order['OrderDate'],
-                    'OrderDate' => $order['OrderDate'], // Fallback
+                    'OrderDate' => $order['OrderDate'],
                     'status' => $order['Status'],
-                    'Status' => $order['Status'], // Fallback
+                    'Status' => $order['Status'],
                     'buyerName' => $order['BuyerName'],
-                    'BuyerName' => $order['BuyerName'], // Fallback
+                    'BuyerName' => $order['BuyerName'],
                     'items' => [],
                     'total' => 0.0
                 ];
             }
 
-            $quantity = (int)$order['Quantity'];
-            $unitPrice = (float)$order['UnitPrice'];
+            $quantity = (int) $order['Quantity'];
+            $unitPrice = (float) $order['UnitPrice'];
             $itemTotal = $quantity * $unitPrice;
 
             $grouped[$orderId]['items'][] = [
-                'productId' => (int)$order['ProductID'],
-                'ProductID' => (int)$order['ProductID'], // Fallback
+                'productId' => (int) $order['ProductID'],
+                'ProductID' => (int) $order['ProductID'],
                 'productName' => $order['ProductName'],
-                'ProductName' => $order['ProductName'], // Fallback
+                'ProductName' => $order['ProductName'],
                 'quantity' => $quantity,
-                'Quantity' => $quantity, // Fallback
+                'Quantity' => $quantity,
                 'unitPrice' => $unitPrice,
-                'UnitPrice' => $unitPrice, // Fallback
+                'UnitPrice' => $unitPrice,
                 'totalPrice' => $itemTotal,
-                'TotalPrice' => $itemTotal // Fallback
+                'TotalPrice' => $itemTotal
             ];
+
             $grouped[$orderId]['total'] += $itemTotal;
         }
 
@@ -213,96 +260,153 @@ class OrderService {
     }
 
     // 4. Fetch seller stats for charts
-    public function getSellerStats(int $sellerId): array {
+    public function getSellerStats(int $sellerId): array
+    {
         return $this->orderRepository->getSellerStats($sellerId);
     }
 
-    // 5. Seller accepts an order (wrapped in transaction saga: charges buyer first, then credits seller)
-    public function acceptOrder(int $orderId, int $sellerId): void {
+    // 5. Seller accepts an order
+    public function acceptOrder(int $orderId, int $sellerId): void
+    {
         $order = $this->orderRepository->getOrderDetails($orderId);
+
         if (!$order) {
             throw new Exception("Order not found.");
         }
+
         if ($order->status !== "Pending") {
-            throw new Exception("Order cannot be accepted because its status is: " . $order->status);
+            throw new Exception(
+                "Order cannot be accepted because its status is: " .
+                $order->status
+            );
         }
 
         // Step 1: Charge the buyer's wallet
         $walletServiceUrl = $this->walletServiceUrl . "/api/wallet/pay";
+
         $paymentPayload = [
             "userId" => $order->buyerId,
             "amount" => $order->totalPrice,
             "orderId" => $orderId
         ];
 
-        $paymentResult = $this->sendCurlRequest($walletServiceUrl, "POST", $paymentPayload);
+        $paymentResult = $this->sendCurlRequest(
+            $walletServiceUrl,
+            "POST",
+            $paymentPayload
+        );
 
         if ($paymentResult['status'] !== 200) {
-            // Payment failed. We cancel the order and release the reserved stock!
-            $itemsPayload = array_map(function($item) {
+            // Payment failed. Cancel order and release reserved stock.
+            $itemsPayload = array_map(function ($item) {
                 return [
                     'productId' => $item->productId,
                     'quantity' => $item->quantity
                 ];
             }, $order->items);
-            
-            $releaseUrl = $this->productServiceUrl . "/api/products/release";
-            $this->sendCurlRequest($releaseUrl, "POST", ["items" => $itemsPayload]);
 
-            // Mark order as Failed
-            $this->orderRepository->updateOrderStatus($orderId, "Failed");
-            
-            throw new Exception("Payment failed: " . ($paymentResult['body']['message'] ?? 'Insufficient buyer funds'));
+            $releaseUrl = $this->productServiceUrl . "/api/products/release";
+
+            $this->sendCurlRequest(
+                $releaseUrl,
+                "POST",
+                ["items" => $itemsPayload]
+            );
+
+            $this->orderRepository->updateOrderStatus(
+                $orderId,
+                "Failed"
+            );
+
+            throw new Exception(
+                "Payment failed: " .
+                ($paymentResult['body']['message'] ?? 'Insufficient buyer funds')
+            );
         }
 
         // Step 2: Update status to Completed/Accepted
-        $success = $this->orderRepository->updateStatus($orderId, $sellerId, "Accepted");
+        $success = $this->orderRepository->updateStatus(
+            $orderId,
+            $sellerId,
+            "Accepted"
+        );
+
         if (!$success) {
             // Compensation step: refund the buyer
             $refundUrl = $this->walletServiceUrl . "/api/wallet/refund";
-            $this->sendCurlRequest($refundUrl, "POST", [
-                "userId" => $order->buyerId,
-                "amount" => $order->totalPrice,
-                "orderId" => $orderId
-            ]);
-            
-            throw new Exception("Failed to accept order. You may not be authorized to accept this order.");
+
+            $this->sendCurlRequest(
+                $refundUrl,
+                "POST",
+                [
+                    "userId" => $order->buyerId,
+                    "amount" => $order->totalPrice,
+                    "orderId" => $orderId
+                ]
+            );
+
+            throw new Exception(
+                "Failed to accept order. You may not be authorized to accept this order."
+            );
         }
 
-        // Step 3: Credit the seller's wallet via the Wallet Service refund endpoint
+        // Step 3: Credit the seller's wallet
         $creditUrl = $this->walletServiceUrl . "/api/wallet/refund";
+
         $creditPayload = [
             "userId" => $sellerId,
             "amount" => $order->totalPrice,
             "orderId" => $orderId
         ];
 
-        $creditResult = $this->sendCurlRequest($creditUrl, "POST", $creditPayload);
+        $creditResult = $this->sendCurlRequest(
+            $creditUrl,
+            "POST",
+            $creditPayload
+        );
 
         if ($creditResult['status'] !== 200) {
             // Rollback everything
+
             // 1. Refund the buyer
             $refundUrl = $this->walletServiceUrl . "/api/wallet/refund";
-            $this->sendCurlRequest($refundUrl, "POST", [
-                "userId" => $order->buyerId,
-                "amount" => $order->totalPrice,
-                "orderId" => $orderId
-            ]);
+
+            $this->sendCurlRequest(
+                $refundUrl,
+                "POST",
+                [
+                    "userId" => $order->buyerId,
+                    "amount" => $order->totalPrice,
+                    "orderId" => $orderId
+                ]
+            );
 
             // 2. Release product inventory
-            $itemsPayload = array_map(function($item) {
+            $itemsPayload = array_map(function ($item) {
                 return [
                     'productId' => $item->productId,
                     'quantity' => $item->quantity
                 ];
             }, $order->items);
+
             $releaseUrl = $this->productServiceUrl . "/api/products/release";
-            $this->sendCurlRequest($releaseUrl, "POST", ["items" => $itemsPayload]);
+
+            $this->sendCurlRequest(
+                $releaseUrl,
+                "POST",
+                ["items" => $itemsPayload]
+            );
 
             // 3. Mark order as Failed
-            $this->orderRepository->updateOrderStatus($orderId, "Failed");
-            
-            throw new Exception("Wallet transaction failed. Order acceptance aborted: " . ($creditResult['body']['message'] ?? 'Unknown error'));
+            $this->orderRepository->updateOrderStatus(
+                $orderId,
+                "Failed"
+            );
+
+            throw new Exception(
+                "Wallet transaction failed. Order acceptance aborted: " .
+                ($creditResult['body']['message'] ?? 'Unknown error')
+            );
         }
     }
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/config/api";
 import { useRouter } from "next/navigation";
 
 import Link from "next/link";
@@ -15,7 +16,7 @@ export default function AdminDashboard() {
   // Fetch all complaints from backend
   const fetchComplaints = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/complaints", {
+      const res = await fetch(`${API_BASE_URL}/complaints`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -42,7 +43,7 @@ export default function AdminDashboard() {
   const handleToggleUserBlock = async (userId, currentBlocked) => {
     setMessage(null);
     try {
-      const res = await fetch("http://localhost:5000/api/admin/users/block", {
+      const res = await fetch(`${API_BASE_URL}/admin/users/block`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -66,7 +67,7 @@ export default function AdminDashboard() {
   const handleToggleShopBlock = async (shopId, currentBlocked) => {
     setMessage(null);
     try {
-      const res = await fetch("http://localhost:5000/api/admin/shops/block", {
+      const res = await fetch(`${API_BASE_URL}/admin/shops/block`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

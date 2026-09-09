@@ -3,7 +3,7 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { API_BASE_URL } from "@/config/api";
 
 // ==========================================
 // BLOCK 1: Context Creation
@@ -15,7 +15,12 @@ const AuthContext = createContext();
 // ==========================================
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Holds user details: { UserID, Username, Email, RoleName }
-  const [token, setToken] = useState(null); // Holds JWT token string
+  const [token, setToken] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token") || null;
+    }
+    return null;
+  }); // Holds JWT token string
   const [walletBalance, setWalletBalance] = useState(0); // Holds wallet balance
   const [loading, setLoading] = useState(true); // Tracks initial session load
   const router = useRouter();

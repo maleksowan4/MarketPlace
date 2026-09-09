@@ -1,0 +1,195 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "CI_SA_Password@2026"
+      MSSQL_PID: Developer
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'CI_SA_Password@2026' -C -Q 'SELECT 1' || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - marketplace-network
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    user: root
+    command:
+      - /bin/bash
+      - -c
+      - |
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$SA_PASSWORD" -C -d master -i /scripts/schema.sql
+        if [ $$? -ne 0 ]; then exit 1; fi
+
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$SA_PASSWORD" -C -d MarketPlace -i /scripts/seed.sql
+        if [ $$? -ne 0 ]; then exit 1; fi
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      SA_PASSWORD: CI_SA_Password@2026
+    networks:
+      - marketplace-network
+    volumes:
+      - ./ci/sql:/scripts:ro
+
+  auth-service:
+    build:
+      context: ./serverphp/auth-service
+    environment:
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_NAME: MarketPlace
+      DB_USER: sa
+      DB_PASSWORD: "CI_SA_Password@2026"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - marketplace-network
+
+  user-service:
+    build:
+      context: ./serverphp/user-service
+    environment:
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_NAME: MarketPlace
+      DB_USER: sa
+      DB_PASSWORD: "CI_SA_Password@2026"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - marketplace-network
+
+  product-service:
+    build:
+      context: ./serverphp/product-service
+    environment:
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_NAME: MarketPlace
+      DB_USER: sa
+      DB_PASSWORD: "CI_SA_Password@2026"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - marketplace-network
+
+  order-service:
+    build:
+      context: ./serverphp/order-service
+    environment:
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_NAME: MarketPlace
+      DB_USER: sa
+      DB_PASSWORD: "CI_SA_Password@2026"
+      PRODUCT_SERVICE_URL: http://product-service:5003
+      WALLET_SERVICE_URL: http://wallet-service:5005
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      product-service:
+        condition: service_started
+      wallet-service:
+        condition: service_started
+    networks:
+      - marketplace-network
+
+  wallet-service:
+    build:
+      context: ./serverphp/wallet-service
+    environment:
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_NAME: MarketPlace
+      DB_USER: sa
+      DB_PASSWORD: "CI_SA_Password@2026"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - marketplace-network
+
+  complaint-service:
+    build:
+      context: ./serverphp/complaint-service
+    environment:
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_NAME: MarketPlace
+      DB_USER: sa
+      DB_PASSWORD: "CI_SA_Password@2026"
+      USER_SERVICE_URL: http://user-service:5002
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      user-service:
+        condition: service_started
+    networks:
+      - marketplace-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:5001
+      USER_SERVICE_URL: http://user-service:5002
+      PRODUCT_SERVICE_URL: http://product-service:5003
+      ORDER_SERVICE_URL: http://order-service:5004
+      WALLET_SERVICE_URL: http://wallet-service:5005
+      COMPLAINT_SERVICE_URL: http://complaint-service:5006
+    depends_on:
+      auth-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      wallet-service:
+        condition: service_started
+      complaint-service:
+        condition: service_started
+    networks:
+      - marketplace-network
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://api-gateway:5000/api
+    depends_on:
+      api-gateway:
+        condition: service_started
+    networks:
+      - marketplace-network
+
+  playwright:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    environment:
+      PLAYWRIGHT_BASE_URL: http://frontend:3000
+    depends_on:
+      frontend:
+        condition: service_started
+    networks:
+      - marketplace-network
+
+networks:
+  marketplace-network:
+    driver: bridge

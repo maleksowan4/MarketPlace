@@ -47,3 +47,5 @@ serverphp/*/public/uploads/
 
 # Composer executable
 **/composer.phar
+
+.env.ci

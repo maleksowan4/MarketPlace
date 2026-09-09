@@ -9,9 +9,11 @@ use Exception;
 
 class ComplaintService {
     private ComplaintRepository $complaintRepository;
+    private string $userServiceUrl;
 
     public function __construct() {
         $this->complaintRepository = new ComplaintRepository();
+        $this->userServiceUrl = rtrim(getenv('USER_SERVICE_URL') ?: 'http://localhost:5002', '/');
     }
 
     // 1. Buyer files a complaint
@@ -22,7 +24,7 @@ class ComplaintService {
         }
 
         // Query the User/Shop Service to look up the SellerID of this shop
-        $shopServiceUrl = "http://localhost:5002/api/shops/" . $dto->shopId;
+        $shopServiceUrl = $this->userServiceUrl . "/api/shops/" . $dto->shopId;
         $shopResult = $this->sendCurlRequest($shopServiceUrl, "GET");
 
         if ($shopResult['status'] !== 200) {

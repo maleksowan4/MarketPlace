@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL, USER_SERVICE_BASE_URL, PRODUCT_SERVICE_BASE_URL, getShopLogoUrl, getProductImageUrl } from "@/config/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -38,13 +39,13 @@ export default function AdminShopDetailsPage({ params }) {
     if (!token || !shopId) return;
     try {
       // 1. Fetch shop profile
-      const shopRes = await fetch(`http://localhost:5000/api/shops/${shopId}`);
+      const shopRes = await fetch(`${API_BASE_URL}/shops/${shopId}`);
       if (!shopRes.ok) throw new Error("Failed to load shop details.");
       const shopData = await shopRes.json();
       setShop(shopData);
 
       // 2. Fetch products for this shop
-      const prodRes = await fetch(`http://localhost:5000/api/shops/${shopId}/products`);
+      const prodRes = await fetch(`${API_BASE_URL}/shops/${shopId}/products`);
       if (prodRes.ok) {
         const prodData = await prodRes.json();
         setProducts(prodData);
@@ -68,7 +69,7 @@ export default function AdminShopDetailsPage({ params }) {
     if (!shop) return;
     setMessage(null);
     try {
-      const res = await fetch("http://localhost:5000/api/admin/shops/block", {
+      const res = await fetch(`${API_BASE_URL}/admin/shops/block`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -95,7 +96,7 @@ export default function AdminShopDetailsPage({ params }) {
     if (!confirm("Are you sure you want to delete this product as Administrator?")) return;
     setMessage(null);
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/products/${productId}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -191,7 +192,7 @@ export default function AdminShopDetailsPage({ params }) {
         }}>
           {shop?.LogoUrl ? (
             <img 
-              src={`http://localhost:5002${shop.LogoUrl}`} 
+              src={getShopLogoUrl(shop.LogoUrl)} 
               alt={shop.ShopName} 
               style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 16, border: '1px solid #e5e7eb' }} 
             />
@@ -250,7 +251,7 @@ export default function AdminShopDetailsPage({ params }) {
                       padding: 6
                     }}>
                       <img 
-                        src={`http://localhost:5003${product.ImageUrl}`} 
+                        src={getProductImageUrl(product.ImageUrl)} 
                         alt={product.ProductName} 
                         style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
                       />

@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL, PRODUCT_SERVICE_BASE_URL, getProductImageUrl } from "@/config/api";
 import Link from "next/link";
 
 
@@ -254,7 +255,7 @@ export default function SellerDashboard() {
     const checkShopBlock = async () => {
       if (!token) return;
       try {
-        const res = await fetch("http://localhost:5000/api/shops/my-shop-details", {
+        const res = await fetch(`${API_BASE_URL}/shops/my-shop-details`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (res.ok) {
@@ -295,7 +296,7 @@ export default function SellerDashboard() {
   const fetchProducts = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:5000/api/products/seller", {
+      const res = await fetch(`${API_BASE_URL}/products/seller`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -311,7 +312,7 @@ export default function SellerDashboard() {
   const fetchStats = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:5000/api/orders/seller/stats", {
+      const res = await fetch(`${API_BASE_URL}/orders/seller/stats`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -327,7 +328,7 @@ export default function SellerDashboard() {
   const fetchOrders = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:5000/api/orders/seller", {
+      const res = await fetch(`${API_BASE_URL}/orders/seller`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -404,6 +405,7 @@ export default function SellerDashboard() {
     }
 
     try {
+      const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
       const formData = new FormData();
       formData.append("productName", productName.trim());
       formData.append("price", parseFloat(price));
@@ -412,10 +414,10 @@ export default function SellerDashboard() {
         formData.append("image", selectedFile);
       }
 
-      const res = await fetch("http://localhost:5000/api/products", {
+      const res = await fetch(`${API_BASE_URL}/products`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${activeToken}`
         },
         body: formData
       });
@@ -465,7 +467,7 @@ export default function SellerDashboard() {
         formData.append("image", editFile);
       }
 
-      const res = await fetch(`http://localhost:5000/api/products/${productId}`, {
+      const res = await fetch(`${API_BASE_URL}/products/${productId}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -495,7 +497,7 @@ export default function SellerDashboard() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/products/${productId}`, {
+      const res = await fetch(`${API_BASE_URL}/products/${productId}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -768,7 +770,7 @@ export default function SellerDashboard() {
                   <div className="flex items-center gap-3">
                     {p.ImageUrl && (
                       <img 
-                        src={`http://localhost:5003${p.ImageUrl}`} 
+                        src={getProductImageUrl(p.ImageUrl)} 
                         alt={p.ProductName} 
                         className="w-12 h-12 object-cover rounded-lg border border-zinc-200"
                       />

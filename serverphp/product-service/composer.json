@@ -4,12 +4,12 @@
     "require": {
         "firebase/php-jwt": "^6.10"
     },
-    "autoload": {
-        "psr-4": {
-            "ProductService\\": "src/",
-            "ProductService\\Config\\": "config/"
-        }
-    },
+  "autoload": {
+    "psr-4": {
+        "ProductService\\Config\\": "config/",
+        "ProductService\\": "src/"
+    }
+},
     "config": {
         "policy": {
             "advisories": {

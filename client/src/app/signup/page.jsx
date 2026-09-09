@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { API_BASE_URL } from "@/config/api";
 
 export default function RegisterPage() {
 
@@ -30,7 +31,7 @@ export default function RegisterPage() {
 
     try {
 
-        const res = await fetch("http://localhost:5000/api/users", {
+        const res = await fetch(`${API_BASE_URL}/users`, {
 
             method : "POST", 
             headers : {

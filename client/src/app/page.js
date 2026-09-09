@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL, USER_SERVICE_BASE_URL, getShopLogoUrl } from "@/config/api";
 import Link from "next/link";
 
 export default function Home() {
@@ -28,7 +29,7 @@ export default function Home() {
 
     const fetchShops = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/shops");
+        const res = await fetch(`${API_BASE_URL}/shops`);
         if (!res.ok) {
           throw new Error("Failed to fetch shops database list");
         }
@@ -100,7 +101,7 @@ export default function Home() {
                   className="flex items-center gap-2.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 px-3.5 py-1.5 rounded-lg transition-all duration-200 group shrink-0"
                 >
                   <img
-                    src={`http://localhost:5002${shop.LogoUrl}`}
+                    src={getShopLogoUrl(shop.LogoUrl)}
                     alt={shop.ShopName}
                     className="w-5 h-5 object-cover rounded-md border border-zinc-300 group-hover:scale-105 transition-transform"
                   />
@@ -193,7 +194,7 @@ export default function Home() {
                 <div className="flex items-center gap-3 mb-4">
                   {shop.LogoUrl ? (
                     <img 
-                      src={`http://localhost:5002${shop.LogoUrl}`} 
+                      src={getShopLogoUrl(shop.LogoUrl)}
                       alt={shop.ShopName} 
                       className="w-12 h-12 object-cover rounded-lg border border-zinc-200 shrink-0 group-hover:scale-105 transition-transform" 
                     />

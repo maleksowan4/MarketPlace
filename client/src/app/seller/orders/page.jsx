@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/config/api";
 import Link from "next/link";
 
 export default function SellerOrdersPage() {
@@ -44,15 +45,16 @@ const { user, token, walletBalance, loading: authLoading, updateWalletBalance } 
   // Fetch pre-grouped orders from backend API
   // Fetch pre-grouped orders from backend API
   const fetchOrders = useCallback(async () => {
-    if (!token) {
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+    if (!activeToken) {
       setLoading(false);
       return;
     }
     
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/orders/seller/incoming", {
-        headers: { "Authorization": `Bearer ${token}` }
+      const res = await fetch(`${API_BASE_URL}/orders/seller/incoming`, {
+        headers: { "Authorization": `Bearer ${activeToken}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -71,7 +73,8 @@ const { user, token, walletBalance, loading: authLoading, updateWalletBalance } 
   // Load orders once authentication check finishes
   useEffect(() => {
     if (!authLoading) {
-      if (user && token) {
+      const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+      if (user && activeToken) {
         fetchOrders();
       } else {
         setLoading(false); // Stop loading if guest or token is missing
@@ -82,14 +85,15 @@ const { user, token, walletBalance, loading: authLoading, updateWalletBalance } 
 
   // Accept a pending order and transfer funds
   const handleAcceptOrder = async (orderId) => {
-    if (!token || actionLoading) return;
+    const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+    if (!activeToken || actionLoading) return;
     
     setActionLoading(orderId); // Start loading spinner for this specific order
     try {
-      const res = await fetch(`http://localhost:5000/api/orders/${orderId}/accept`, {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/accept`, {
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${activeToken}`
         }
       });
 

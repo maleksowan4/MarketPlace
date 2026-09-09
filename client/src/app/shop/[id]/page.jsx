@@ -2,6 +2,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL, USER_SERVICE_BASE_URL, PRODUCT_SERVICE_BASE_URL, getShopLogoUrl, getProductImageUrl } from "@/config/api";
 import Link from "next/link";
 
 export default function ShopPage({ params: paramsPromise }) {
@@ -34,11 +35,12 @@ const { user, token } = useAuth();
 
     setReportLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/complaints", {
+      const activeToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+      const res = await fetch(`${API_BASE_URL}/complaints`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${activeToken}`
         },
         body: JSON.stringify({ 
           shopId, 
@@ -127,7 +129,7 @@ useEffect(  ()=>  {
   const fetchShopData = async () => {
 
     try {
-      const shopRes = await fetch(`http://localhost:5000/api/shops/${shopId}`)
+      const shopRes = await fetch(`${API_BASE_URL}/shops/${shopId}`)
 
       if (!shopRes.ok) {
                 throw new Error("Shop not found");
@@ -138,7 +140,7 @@ useEffect(  ()=>  {
 
       setShop(shopData) 
 
-      const productRes = await fetch(`http://localhost:5000/api/shops/${shopId}/products`)
+      const productRes = await fetch(`${API_BASE_URL}/shops/${shopId}/products`)
 
       if(!productRes.ok) {
         throw new Error ("Failed to fetch data")
@@ -257,7 +259,7 @@ return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
       {shop?.LogoUrl && (
         <img 
-          src={`http://localhost:5002${shop.LogoUrl}`} 
+          src={getShopLogoUrl(shop.LogoUrl)} 
           alt={shop.ShopName} 
           style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 12, border: '1px solid #e4e4e7' }} 
         />
@@ -331,7 +333,7 @@ return (
                 padding: 6
               }}>
                 <img 
-                  src={`http://localhost:5003${product.ImageUrl}`} 
+                  src={getProductImageUrl(product.ImageUrl)} 
                   alt={product.ProductName} 
                   style={{
                     maxHeight: '100%',
