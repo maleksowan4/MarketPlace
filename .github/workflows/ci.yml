@@ -19,3 +19,6 @@ jobs:
 
       - name: Check Docker
         run: docker --version
+
+      - name: Build Docker images
+        run: docker compose build
