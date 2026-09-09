@@ -1,0 +1,19 @@
+name : Marketplace CI 
+
+on: 
+push:
+branches: 
+- main 
+
+pull_request: 
+
+branches: 
+- main 
+
+jops: 
+test: 
+ runs-on: ubuntu-latest 
+
+ steps: 
+ - name: Checkout repository
+uses: action/checkout@v4
