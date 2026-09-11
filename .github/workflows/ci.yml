@@ -50,13 +50,17 @@ jobs:
           subscription-id: b62d9272-27f4-4e75-b422-b5c6a66d2ca5
 
       # =========================
-      # 3. Login to ACR
+      # 3. Check ACR
       # =========================
 
-      - name: Login to ACR
+      - name: Check ACR
         if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          az acr login --name marketplaceac2026s
+          az acr show \
+            --name marketplaceac2026s \
+            --resource-group malek \
+            --query "{name:name,loginServer:loginServer,roleAssignmentMode:roleAssignmentMode}" \
+            -o json
 
       # =========================
       # 4. Build production images
@@ -126,4 +130,4 @@ jobs:
       - name: Stop CI environment
         if: always()
         run: |
-          docker compose -f docker-compose.ci.yml down -vs
+          docker compose -f docker-compose.ci.yml down -v
