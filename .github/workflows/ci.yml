@@ -56,7 +56,9 @@ jobs:
       - name: Login to ACR
         if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          az acr login --name marketplaceac2026s
+          az acr login \
+            --name marketplaceac2026s \
+            --suffix daa5awb8gjg3h0a5
 
       # =========================
       # 4. Build production images
