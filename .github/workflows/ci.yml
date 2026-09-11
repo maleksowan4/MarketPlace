@@ -9,6 +9,10 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -16,6 +20,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # =========================
+      # 1. Build and test
+      # =========================
 
       - name: Build and start CI environment
         run: |
@@ -29,6 +37,87 @@ jobs:
         run: |
           docker compose -f docker-compose.ci.yml run --rm playwright
 
+      # =========================
+      # 2. Azure authentication
+      # =========================
+
+      - name: Login to Azure
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: azure/login@v2
+        with:
+          client-id: 02f211b5-d45e-4bd8-b7c2-34e1229caaa2
+          tenant-id: 70eae964-8f73-48b1-bcf3-d36f8d593d96
+          subscription-id: b62d9272-27f4-4e75-b422-b5c6a66d2ca5
+
+      # =========================
+      # 3. Login to ACR
+      # =========================
+
+      - name: Login to ACR
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          az acr login --name marketplaceac2026s
+
+      # =========================
+      # 4. Build production images
+      # =========================
+
+      - name: Build production images
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker build \
+            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-auth-service:latest \
+            ./serverphp/auth-service
+
+          docker build \
+            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-user-service:latest \
+            ./serverphp/user-service
+
+          docker build \
+            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-product-service:latest \
+            ./serverphp/product-service
+
+          docker build \
+            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-order-service:latest \
+            ./serverphp/order-service
+
+          docker build \
+            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-wallet-service:latest \
+            ./serverphp/wallet-service
+
+          docker build \
+            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-complaint-service:latest \
+            ./serverphp/complaint-service
+
+          docker build \
+            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-api-gateway:latest \
+            -f Dockerfile.gateway .
+
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=http://api-gateway:5000/api \
+            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-frontend:latest \
+            ./client
+
+      # =========================
+      # 5. Push production images
+      # =========================
+
+      - name: Push production images
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-auth-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-user-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-product-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-order-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-wallet-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-complaint-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-api-gateway:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-frontend:latest
+
+      # =========================
+      # 6. Diagnostics
+      # =========================
+
       - name: Show logs if tests fail
         if: failure()
         run: |
@@ -37,4 +126,4 @@ jobs:
       - name: Stop CI environment
         if: always()
         run: |
-          docker compose -f docker-compose.ci.yml down -v
+          docker compose -f docker-compose.ci.yml down -vs
