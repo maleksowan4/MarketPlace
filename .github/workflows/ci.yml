@@ -50,17 +50,13 @@ jobs:
           subscription-id: b62d9272-27f4-4e75-b422-b5c6a66d2ca5
 
       # =========================
-      # 3. Check ACR
+      # 3. Login to ACR
       # =========================
 
-      - name: Check ACR
+      - name: Login to ACR
         if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          az acr show \
-            --name marketplaceac2026s \
-            --resource-group malek \
-            --query "{name:name,loginServer:loginServer,roleAssignmentMode:roleAssignmentMode}" \
-            -o json
+          az acr login --name marketplaceac2026s
 
       # =========================
       # 4. Build production images
