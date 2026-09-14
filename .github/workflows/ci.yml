@@ -20,6 +20,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+
       - name: Build and start CI environment
         run: |
           docker compose -f docker-compose.ci.yml up -d --build
@@ -50,49 +53,33 @@ jobs:
       - name: Build production images
         if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          docker build \
-            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-auth-service:latest \
-            ./serverphp/auth-service
-
-          docker build \
-            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-user-service:latest \
-            ./serverphp/user-service
-
-          docker build \
-            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-product-service:latest \
-            ./serverphp/product-service
-
-          docker build \
-            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-order-service:latest \
-            ./serverphp/order-service
-
-          docker build \
-            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-wallet-service:latest \
-            ./serverphp/wallet-service
-
-          docker build \
-            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-complaint-service:latest \
-            ./serverphp/complaint-service
-
-          docker build \
-            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-api-gateway:latest \
-            -f Dockerfile.gateway .
-
-          docker build \
-            --build-arg NEXT_PUBLIC_API_URL=https://marketplace-gateway.happypond-f724aab3.westus.azurecontainerapps.io/api \
-            -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-frontend:latest \
-            ./client
+          docker build -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-auth-service:${IMAGE_TAG} -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-auth-service:latest ./serverphp/auth-service
+          docker build -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-user-service:${IMAGE_TAG} -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-user-service:latest ./serverphp/user-service
+          docker build -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-product-service:${IMAGE_TAG} -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-product-service:latest ./serverphp/product-service
+          docker build -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-order-service:${IMAGE_TAG} -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-order-service:latest ./serverphp/order-service
+          docker build -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-wallet-service:${IMAGE_TAG} -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-wallet-service:latest ./serverphp/wallet-service
+          docker build -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-complaint-service:${IMAGE_TAG} -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-complaint-service:latest ./serverphp/complaint-service
+          docker build -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-api-gateway:${IMAGE_TAG} -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-api-gateway:latest -f Dockerfile.gateway .
+          docker build --build-arg NEXT_PUBLIC_API_URL=https://marketplace-gateway.happypond-f724aab3.westus.azurecontainerapps.io/api -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-frontend:${IMAGE_TAG} -t marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-frontend:latest ./client
 
       - name: Push production images
         if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-auth-service:${IMAGE_TAG}
           docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-auth-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-user-service:${IMAGE_TAG}
           docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-user-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-product-service:${IMAGE_TAG}
           docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-product-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-order-service:${IMAGE_TAG}
           docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-order-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-wallet-service:${IMAGE_TAG}
           docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-wallet-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-complaint-service:${IMAGE_TAG}
           docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-complaint-service:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-api-gateway:${IMAGE_TAG}
           docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-api-gateway:latest
+          docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-frontend:${IMAGE_TAG}
           docker push marketplaceac2026s-daa5awb8gjg3h0a5.azurecr.io/market-place-frontend:latest
 
       - name: Show logs if tests fail
