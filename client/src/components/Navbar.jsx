@@ -225,6 +225,11 @@ export default function Navbar() {
     return null;
   };
 
+  // Automatically close mobile menu when changing route
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-zinc-200/80 bg-white/90 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -246,7 +251,7 @@ export default function Navbar() {
             {renderNavLinks()}
           </div>
 
-          {/* C. USER STATUS & PROFILE BADGE */}
+          {/* C. USER STATUS & PROFILE BADGE (Desktop) */}
           <div className="hidden md:flex md:items-center md:gap-4">
             {user ? (
               <>
@@ -271,7 +276,7 @@ export default function Navbar() {
                 {/* Logout Button */}
                 <button
                   onClick={logout}
-                  className="px-3 py-1.5 text-xs font-bold text-zinc-500 hover:text-red-600 hover:bg-red-50 border border-zinc-200 rounded-lg transition-all"
+                  className="px-3 py-1.5 text-xs font-bold text-zinc-500 hover:text-red-600 hover:bg-red-50 border border-zinc-200 rounded-lg transition-all cursor-pointer"
                 >
                   Logout
                 </button>
@@ -288,8 +293,77 @@ export default function Navbar() {
             )}
           </div>
 
+          {/* D. MOBILE HAMBURGER BUTTON */}
+          <div className="flex md:hidden items-center gap-2">
+            {user && (
+              <div className="flex items-center rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                <span>${Number(walletBalance ?? 0).toFixed(2)}</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg transition-all focus:outline-none"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
+
         </div>
       </div>
+
+      {/* E. MOBILE DROPDOWN MENU */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-zinc-200 bg-white px-4 pt-3 pb-6 space-y-4 shadow-lg animate-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col space-y-1">
+            {renderNavLinks()}
+          </div>
+
+          <div className="pt-3 border-t border-zinc-200/80">
+            {user ? (
+              <div className="space-y-3">
+                <Link 
+                  href="/profile" 
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg border border-zinc-200 bg-zinc-50"
+                >
+                  <div className="w-7 h-7 rounded-full bg-zinc-200 text-zinc-700 font-bold text-xs flex items-center justify-center shrink-0">
+                    {(user.Username || user.username || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-zinc-900">{user.Username || user.username}</div>
+                    <div className="text-[10px] text-zinc-500 capitalize">{user.RoleName || user.roleName || 'User'}</div>
+                  </div>
+                </Link>
+
+                <button
+                  onClick={logout}
+                  className="w-full text-center px-4 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-all"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Link href="/login" className="w-full text-center py-2.5 text-xs font-bold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-all">
+                  Log In
+                </Link>
+                <Link href="/signup" className="w-full text-center py-2.5 text-xs font-bold text-white bg-zinc-950 hover:bg-zinc-800 rounded-lg transition-all shadow-xs">
+                  Get Started
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
